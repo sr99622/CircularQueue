@@ -106,6 +106,7 @@ T CircularQueue<T>::peek()
 template <class T>
 int CircularQueue<T>::size()
 {
+	std::lock_guard<std::mutex> lock(mutex);
 	if (front == -1) {
 		return 0;
 	}
