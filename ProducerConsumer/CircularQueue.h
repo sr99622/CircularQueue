@@ -26,6 +26,7 @@ private:
 	std::condition_variable cond_push, cond_pop;
 	bool closed;
 	bool active;
+	int current_size;
 
 public:
 	CircularQueue(size_t max_size);
@@ -33,6 +34,7 @@ public:
 	T pop();
 	T peek();
 	int size();
+	int local_size();
 	void close();
 	void open();
 	bool isOpen();
@@ -48,6 +50,7 @@ CircularQueue<T>::CircularQueue(size_t max_size)
 	data.reserve(max_size);
 	closed = false;
 	active = true;
+	current_size = 0;
 }
 
 template <typename T>
@@ -55,8 +58,10 @@ void CircularQueue<T>::push(T const& element)
 {
 	std::unique_lock<std::mutex> lock(mutex);
 
-	while ((front == 0 && rear == max_size - 1) || (rear == (front - 1) % (max_size - 1))) {
-		// queue full
+	//while ((front == 0 && rear == max_size - 1) || (rear == (front - 1) % (max_size - 1))) {
+	//while (local_size() == max_size) {
+	while (current_size == max_size) {
+			// queue full
 		if (closed)
 			break;
 
@@ -84,7 +89,7 @@ void CircularQueue<T>::push(T const& element)
 		data[rear] = element;
 
 	active = true;
-
+	current_size++;
 	cond_pop.notify_one();
 }
 
@@ -114,8 +119,7 @@ T CircularQueue<T>::pop()
 
 	T& result = data[front];
 	if (front == rear) {
-		front = -1;
-		rear = -1;
+		front = rear = -1;
 	}
 	else if (front == max_size - 1) {
 		front = 0;
@@ -124,7 +128,7 @@ T CircularQueue<T>::pop()
 		front++;
 	}
 	cond_push.notify_one();
-
+	current_size--;
 	return result;
 }
 
@@ -139,14 +143,20 @@ template <typename T>
 int CircularQueue<T>::size()
 {
 	std::lock_guard<std::mutex> lock(mutex);
+	return local_size();
+}
+
+template <typename T>
+int CircularQueue<T>::local_size()
+{
 	if (front == -1) {
 		return 0;
 	}
-	else if (rear >= front) {
+	if (rear >= front) {
 		return rear - front + 1;
 	}
 	else {
-		return max_size - front + rear;
+		return max_size - front + rear + 1;
 	}
 }
 
