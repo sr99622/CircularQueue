@@ -5,8 +5,16 @@
 #include <mutex>
 #include <thread>
 #include <condition_variable>
+#include <exception>
 
-template <class T>
+class QueueClosedException : public std::exception {
+public:
+	const char* what() const throw() {
+		return "attempt to access closed queue";
+	}
+};
+
+template <typename T>
 class CircularQueue
 {
 private:
@@ -16,7 +24,8 @@ private:
 	int rear;
 	std::mutex mutex;
 	std::condition_variable cond_push, cond_pop;
-	bool open;
+	bool closed;
+	bool active;
 
 public:
 	CircularQueue(size_t max_size);
@@ -25,59 +34,82 @@ public:
 	T peek();
 	int size();
 	void close();
+	void open();
 	bool isOpen();
+	void flush();
 };
 
-template <class T>
+template <typename T>
 CircularQueue<T>::CircularQueue(size_t max_size)
 {
 	this->max_size = max_size;
 	front = -1;
 	rear = -1;
 	data.reserve(max_size);
-	open = true;
+	closed = false;
+	active = true;
 }
 
-template <class T>
+template <typename T>
 void CircularQueue<T>::push(T const& element)
 {
 	std::unique_lock<std::mutex> lock(mutex);
 
 	while ((front == 0 && rear == max_size - 1) || (rear == (front - 1) % (max_size - 1))) {
 		// queue full
-		if (!open)
-			return;
+		if (closed)
+			break;
 
 		cond_push.wait(lock);
 	}
 
+	if (closed) {
+		QueueClosedException e;
+		throw e;
+	}
+
 	if (front == -1) {
-		// queue empty
 		front = rear = 0;
-		data[rear] = element;
 	}
 	else if (rear == max_size - 1 && front != 0) {
 		rear = 0;
-		data[rear] = element;
 	}
 	else {
 		rear++;
-		data[rear] = element;
 	}
+
+	if (data.size() < rear + 1)
+		data.push_back(element);
+	else
+		data[rear] = element;
+
+	active = true;
+
 	cond_pop.notify_one();
 }
 
-template <class T>
+template <typename T>
 T CircularQueue<T>::pop()
 {
 	std::unique_lock<std::mutex> lock(mutex);
 
 	while (front == -1) {
 		// queue empty
-		if (!open)
-			return NULL;
+
+		if (!active) {
+			closed = true;
+			cond_pop.notify_all();
+		}
+
+		if (closed)
+			break;
 
 		cond_pop.wait(lock);
+	}
+
+	if (closed) {
+		QueueClosedException e;
+		throw e;
 	}
 
 	T& result = data[front];
@@ -96,14 +128,14 @@ T CircularQueue<T>::pop()
 	return result;
 }
 
-template <class T>
+template <typename T>
 T CircularQueue<T>::peek()
 {
 	std::unique_lock<std::mutex> lock(mutex);
 	return data[front];
 }
 
-template <class T>
+template <typename T>
 int CircularQueue<T>::size()
 {
 	std::lock_guard<std::mutex> lock(mutex);
@@ -118,17 +150,31 @@ int CircularQueue<T>::size()
 	}
 }
 
-template <class T>
+template <typename T>
 void CircularQueue<T>::close()
 {
 	std::unique_lock<std::mutex> lock(mutex);
-	open = false;
+	closed = true;
 	cond_pop.notify_all();
 }
 
-template <class T>
+template <typename T>
+void CircularQueue<T>::open()
+{
+	std::unique_lock<std::mutex> lock(mutex);
+	closed = false;
+}
+
+template <typename T>
 bool CircularQueue<T>::isOpen()
 {
 	std::lock_guard<std::mutex> lock(mutex);
-	return open;
+	return !closed;
+}
+
+template <typename T>
+void CircularQueue<T>::flush()
+{
+	std::lock_guard<std::mutex> lock(mutex);
+	active = false;
 }
