@@ -7,7 +7,13 @@
 void maker(CircularQueue<Picture>* q, int id)
 {
     for (int i = 0; i < 100; i++) {
-        Picture picture(3480, 2160);
+        int width = 3840;
+        int height = 2160;
+        if (i % 4 == 0) {
+            width = 1920;
+            height = 1080;
+        }
+        Picture picture(width, height);
         picture.pts = i;
         picture.thread_id = id;
         picture.fill();
@@ -27,7 +33,6 @@ void taker(CircularQueue<Picture>* q, int id)
         try {
             Picture picture = q->pop();
             std::cout << "taker " << picture.toString() << std::endl;
-            //delete picture;
             std::this_thread::sleep_for(std::chrono::milliseconds(rand() % 1000));
         }
         catch (const QueueClosedException& e) {
@@ -37,7 +42,7 @@ void taker(CircularQueue<Picture>* q, int id)
     }
 }
 
-int main()
+int main(int argc, char* argv[])
 {
     time_t start_time = time(NULL);
     srand(start_time);

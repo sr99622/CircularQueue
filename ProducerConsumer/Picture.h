@@ -23,16 +23,15 @@ public:
 		bool existing = true;
 
 		if (this != &other) {
-			if (data == nullptr) {
-				data = (uint8_t*)malloc(width * height * sizeof(uint8_t));
-				existing = false;
+			if (other.width > 0 && other.height > 0) {
+				if (!(width == other.width && height == other.height)) {
+					if (data != nullptr)
+						free(data);
+					data = (uint8_t*)malloc(other.width * other.height * sizeof(uint8_t));
+					existing = false;
+				}
+				memcpy(data, other.data, other.width * other.height * sizeof(uint8_t));
 			}
-			else if (!(width == other.width && height == other.height)) {
-				free(data);
-				data = (uint8_t*)malloc(width * height * sizeof(uint8_t));
-				existing = false;
-			}
-			memcpy(data, other.data, width * height * sizeof(uint8_t));
 
 			width = other.width;
 			height = other.height;
@@ -43,8 +42,6 @@ public:
 				std::cout << "TRUE operator assignment " << toString() << std::endl;
 			else
 				std::cout << "FALSE operator assignment " << toString() << std::endl;
-
-
 		}
 		return *this;
 	}

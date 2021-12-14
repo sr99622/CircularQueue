@@ -22,12 +22,15 @@ Picture::Picture(int width, int height)
 
 Picture::Picture(const Picture& picture)
 {
+	std::cout << "copy constructor start" << std::endl;
 	width = picture.width;
 	height = picture.height;
 	pts = picture.pts;
 	thread_id = picture.thread_id;
-	data = (uint8_t*)malloc(width * height * sizeof(uint8_t));
-	memcpy(data, picture.data, width * height * sizeof(uint8_t));
+	if (width > 0 && height > 0) {
+		data = (uint8_t*)malloc(width * height * sizeof(uint8_t));
+		memcpy(data, picture.data, width * height * sizeof(uint8_t));
+	}
 	std::cout << "copy constructor " << toString() << std::endl;
 }
 
