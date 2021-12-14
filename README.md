@@ -8,5 +8,7 @@ The queue is designed to be thread safe and will accommodate multiple inputs and
 
 The queue will accomodate objects of differing memory configurations, however the performance advantage will not exist in this case.  It will behave as a traditional queue when elements do not have an identical memory footprint.
 
-Care must be taken when implementing class objects that are to be used in the queue.  The element class must properly implement the copy constructor and assignment operator for correct operation in the queue.  Please refer to the Picture class example included.  A typical class will contain macro data such as a header identifying the contents of the data strcuture and a pointer allocated on the heap which points to the actual data.  Some combination of malloc and memcpy will typically be used to allocate and copy the data to the heap memory, and the usual precautions used around these types of operations are required.  The element class destructor should handle freeing the heap memory.
+Care must be taken when implementing class objects that are to be used in the queue.  The element class must properly implement the copy constructor and assignment operator for correct operation in the queue.  Please refer to the Picture class example included.  
+
+A typical element class will contain macro data such as a header identifying the character of the data structure and a pointer to memory allocated on the heap which is the actual data.  Some combination of malloc and memcpy will typically be used to allocate and copy the data to the heap memory, and the usual precautions used around these types of operations are required.  The element class destructor should handle freeing the heap memory.
 
