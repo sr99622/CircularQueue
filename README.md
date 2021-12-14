@@ -2,7 +2,7 @@
 
 MIMO Circular Queue implementation
 
-The circular queue has a performance advantage over a traditional queue when the elements contained with in the queue have the same memory footprint.  The memory allocation involves significant overhead and can be avoided by keeping existing objects in the queue and copying the information from the input into the queued data structure.  Media files are a typical example where circular queues can improve performance, particularly in the case where the frame data is especially memory intensive such as a 4K video.
+The circular queue has a performance advantage over a traditional queue when the elements contained within the queue have the same memory footprint.  The memory allocation involves significant overhead and can be avoided by keeping existing objects in the queue and copying the information from the input into the queued data structure.  Media files are a typical example where circular queues can improve performance, particularly in the case where the frame data is especially memory intensive such as a 4K video.
 
 The queue is designed to be thread safe and will accommodate multiple inputs and multiple outputs (MIMO).  Input threads will be required to wait when the queue is full before writing new data and outputs likewise will wait during an empty queue condition.  Upon the completion of all inputs, the queue must be flushed so that the outputs will drain the last data from the queue.  Once all operations are complete, the queue can be closed to prevent further attempts to access the queue data.
 
