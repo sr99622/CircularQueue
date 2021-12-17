@@ -171,6 +171,7 @@ void CircularQueue<T>::flush()
 {
 	std::lock_guard<std::mutex> lock(mutex);
 	active = false;
+	cond_pop.notify_all();
 }
 
 /*
