@@ -9,10 +9,13 @@ void maker(CircularQueue<Picture>* q, int id)
     for (int i = 0; i < 100; i++) {
         int width = 3840;
         int height = 2160;
+
+        // test for inconsistent input response
         if (i % 4 == 0) {
             width = 1920;
             height = 1080;
         }
+
         Picture picture(width, height);
         picture.pts = i;
         picture.thread_id = id;
@@ -29,11 +32,12 @@ void maker(CircularQueue<Picture>* q, int id)
 
 void taker(CircularQueue<Picture>* q, int id)
 {
+    Picture picture;
     while (q->isOpen()) {
         try {
-            Picture picture = q->pop();
+            q->pop(picture);
+            //Picture picture = q->pop(); // make new picture alternate call is slower
             std::cout << "taker " << picture.toString() << std::endl;
-            std::this_thread::sleep_for(std::chrono::milliseconds(rand() % 1000));
         }
         catch (const QueueClosedException& e) {
             std::cout << "taker " << e.what() << std::endl;
