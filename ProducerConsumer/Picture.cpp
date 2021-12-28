@@ -1,76 +1,64 @@
 #include <iostream>
 #include "Picture.h"
 
-Picture::Picture()
+void Picture::swap(Picture& first, Picture& second)
 {
-	width = -1;
-	height = -1;
-	pts = INVALID_PTS;
-	thread_id = -1;
-	data = nullptr;
-	std::cout << "default constructor" << std::endl;
+	using std::swap;
+	swap(first.m_width, second.m_width);
+	swap(first.m_height, second.m_height);
+	swap(first.m_pts, second.m_pts);
+	swap(first.m_thread_id, second.m_thread_id);
+	swap(first.m_data, second.m_data);
 }
 
-Picture::Picture(int width, int height)
+Picture& Picture::operator=(const Picture& other)
 {
-	this->width = width;
-	this->height = height;
-	pts = INVALID_PTS;
-	thread_id = -1;
-	data = (uint8_t*)malloc(width * height * sizeof(uint8_t));
-}
-
-Picture::Picture(const Picture& picture)
-{
-	std::cout << "copy constructor start" << std::endl;
-	width = picture.width;
-	height = picture.height;
-	pts = picture.pts;
-	thread_id = picture.thread_id;
-	if (width > 0 && height > 0) {
-		data = (uint8_t*)malloc(width * height * sizeof(uint8_t));
-		memcpy(data, picture.data, width * height * sizeof(uint8_t));
+	if (m_width == other.m_width && m_height == other.m_height) {
+		std::copy(other.m_data, other.m_data + (m_width * m_height), m_data);
+		m_width = other.m_width;
+		m_height = other.m_height;
+		m_pts = other.m_pts;
+		m_thread_id = other.m_thread_id;
+		std::cout << "existing assignment" << std::endl;
 	}
-	std::cout << "copy constructor " << toString() << std::endl;
-}
+	else {
+		Picture tmp(other);
+		swap(*this, tmp);
+		std::cout << "created new object for assignment" << std::endl;
+	}
 
-Picture::~Picture()
-{
-	std::cout << "Picture destroyed " << toString() << std::endl;
-	free(data);
+	return *this;
 }
 
 void Picture::fill()
 {
-	if (data == nullptr)
+	if (m_data == nullptr)
 		return;
 
-	for (int y = 0; y < height; y++) {
-		for (int x = 0; x < width; x++) {
-			int i = y * width + x;
-			data[i] = rand() % 255;
+	for (int y = 0; y < m_height; y++) {
+		for (int x = 0; x < m_width; x++) {
+			int i = y * m_width + x;
+			m_data[i] = rand() % 255;
 		}
 	}
 }
 
 uint64_t Picture::signature()
 {
-	if (data == nullptr)
+	if (m_data == nullptr)
 		return 0;
 
 	uint64_t result = 0;
-	for (int y = height>>4; y < height>>3; y++) {
-		for (int x = width>>4; x < width>>3; x++) {
-			int i = y * width + x;
-			result += data[i];
-		}
+	for (int y = 1; y < m_height; y++) {
+		int i = y * m_width + m_thread_id;
+		result += m_data[i];
 	}
 	return result;
 }
 
 std::string Picture::toString()
 {
-	std::string str = "pts: " + std::to_string(pts) + " thread_id: "
-		+ std::to_string(thread_id) + " signature: " + std::to_string(signature());
+	std::string str = "pts: " + std::to_string(m_pts) + " thread_id: "
+		+ std::to_string(m_thread_id) +" signature: " + std::to_string(signature());
 	return str;
 }

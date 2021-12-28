@@ -6,19 +6,20 @@
 
 void maker(CircularQueue<Picture>* q, int id)
 {
+    int width = 3840;
+    int height = 2160;
+    Picture picture(width, height);
+
     for (int i = 0; i < 100; i++) {
-        int width = 3840;
-        int height = 2160;
 
         // test for inconsistent input response
-        if (i % 4 == 0) {
-            width = 1920;
-            height = 1080;
-        }
+        //if (i % 4 == 0) {
+        //    width = 1920;
+        //    height = 1080;
+        //}
 
-        Picture picture(width, height);
-        picture.pts = i;
-        picture.thread_id = id;
+        picture.set_pts(i);
+        picture.set_thread_id(id);
         picture.fill();
         std::cout << "maker " << picture.toString() << std::endl;
         try {
