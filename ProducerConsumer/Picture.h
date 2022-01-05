@@ -28,7 +28,7 @@ public:
 	}
 
 	~Picture() {
-		delete[] m_data;
+		if (m_data) delete[] m_data;
 		std::cout << "destructor" << std::endl;
 	}
 
@@ -38,6 +38,18 @@ public:
 	uint64_t signature();
 	std::string toString();
 
+	bool isValid() { return m_width + m_height ? true : false; }
+	void inValidate() {
+		if (m_data) {
+			delete[] m_data;
+			m_data = nullptr;
+		}
+		m_width = m_height = 0;
+		m_pts = INVALID_PTS;
+		m_thread_id = -1;
+
+	}
+
 	uint64_t pts()              { return m_pts; }
 	void set_pts(uint64_t arg)  { m_pts = arg; }
 	int thread_id()             { return m_thread_id; }
@@ -46,10 +58,96 @@ public:
 	std::size_t height()        { return m_height; }
 
 private:
-	uint8_t* m_data;
+	uint8_t* m_data = nullptr;
 	std::size_t m_width;
 	std::size_t m_height;
 	int m_thread_id;
 	uint64_t m_pts;
 };
+
+class PictureQueueMonitor {
+public:
+	PictureQueueMonitor() {}
+
+	static int q_action(Picture& p, int size, bool push, std::string& name) {
+		std::cout << "element: " << ((p.pts() != INVALID_PTS) ? std::to_string(p.pts()) : " INVALID_PTS ") << " name: " << name << std::endl;
+		std::cout << (push ? " push " : " pop ") << " size: " << size << std::endl;
+		if (!p.isValid())
+			std::cout << "EOF CONDITION " << (push ? "ENTER" : "LEAVE") << " QUEUE" << std::endl;
+		return 0;
+	}
+
+	static int q_lock(bool locked, bool push, std::string& name) {
+		std::cout << (push ? " push " : " pop ") << (locked ? " LOCKED " : " UN_LOCKED ") << std::endl;
+		return 0;
+	}
+
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/*
+static int pushElement(Picture& p, std::string& name) {
+	std::cout << "pushElement: " << p.pts() << " name: " << name << std::endl;
+	if (!p.isValid())
+		std::cout << "EOF CONDITION ENTER QUEUE" << std::endl;
+	return 0;
+}
+static int pushSize(int& a, std::string& name) {
+	std::cout << "pushSize: " << a << " name: " << name << std::endl;
+	return 0;
+}
+static int pushLock(bool a, std::string& name) {
+	if (a)
+		std::cout << "push Lock" << " name: " << name << std::endl;
+	else
+		std::cout << "push UnLock" << " name: " << name << std::endl;
+	return 0;
+}
+
+static int popElement(Picture& p, std::string& name) {
+	std::cout << "popElement: " << p.pts() << " name: " << name << std::endl;
+	if (!p.isValid())
+		std::cout << "EOF CONDITION LEAVE QUEUE" << std::endl;
+	return 0;
+}
+static int popSize(int& a, std::string& name) {
+	std::cout << "popSize: " << a << " name: " << name << std::endl;
+	return 0;
+}
+static int popLock(bool a, std::string& name) {
+	if (a)
+		std::cout << "pop Lock" << " name: " << name << std::endl;
+	else
+		std::cout << "pop UnLock" << " name: " << name << std::endl;
+	return 0;
+}
+*/
 

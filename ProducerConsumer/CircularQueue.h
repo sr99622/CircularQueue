@@ -27,6 +27,7 @@ private:
 	bool closed;
 	bool active;
 	int current_size;
+	std::string name;
 
 public:
 	CircularQueue(size_t max_size);
@@ -38,6 +39,11 @@ public:
 	void open();
 	bool isOpen();
 	void flush();
+	void setName(const std::string& arg) { name = arg; }
+
+	int (*mntrAction)(T&, int, bool, std::string&) = nullptr;
+	int (*mntrLock)(bool, bool, std::string&) = nullptr;
+
 };
 
 template <typename T>
@@ -63,7 +69,9 @@ void CircularQueue<T>::push(T const& element)
 		if (closed)
 			break;
 
+		if (mntrLock) (*mntrLock)(true, true, name);
 		cond_push.wait(lock);
+		if (mntrLock) (*mntrLock)(false, true, name);
 	}
 
 	if (closed) {
@@ -88,6 +96,7 @@ void CircularQueue<T>::push(T const& element)
 
 	active = true;
 	current_size++;
+	if (mntrAction) (*mntrAction)((T&)element, current_size, true, name);
 	cond_pop.notify_one();
 }
 
@@ -108,7 +117,9 @@ T CircularQueue<T>::pop()
 			break;
 		}
 
+		if (mntrLock) (*mntrLock)(true, false, name);
 		cond_pop.wait(lock);
+		if (mntrLock) (*mntrLock)(false, false, name);
 	}
 
 	if (closed) {
@@ -126,8 +137,11 @@ T CircularQueue<T>::pop()
 	else {
 		front++;
 	}
-	cond_push.notify_one();
+
+	//cond_push.notify_one();
 	current_size--;
+	if (mntrAction) (*mntrAction)((T&)(result), current_size, false, name);
+	cond_push.notify_one();
 	return result;
 }
 
@@ -148,7 +162,9 @@ void CircularQueue<T>::pop(T& arg)
 			break;
 		}
 
+		if (mntrLock) (*mntrLock)(true, false, name);
 		cond_pop.wait(lock);
+		if (mntrLock) (*mntrLock)(false, false, name);
 	}
 
 	if (closed) {
@@ -166,8 +182,10 @@ void CircularQueue<T>::pop(T& arg)
 	else {
 		front++;
 	}
-	cond_push.notify_one();
+
 	current_size--;
+	if (mntrAction) (*mntrAction)((T&)(arg), current_size, false, name);
+	cond_push.notify_one();
 }
 
 template <typename T>
@@ -206,6 +224,7 @@ void CircularQueue<T>::flush()
 	active = false;
 	cond_pop.notify_all();
 }
+
 
 /*
 template <typename T>

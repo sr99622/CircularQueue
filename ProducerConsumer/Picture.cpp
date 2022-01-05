@@ -32,26 +32,24 @@ Picture& Picture::operator=(const Picture& other)
 
 void Picture::fill()
 {
-	if (m_data == nullptr)
-		return;
-
-	for (int y = 0; y < m_height; y++) {
-		for (int x = 0; x < m_width; x++) {
-			int i = y * m_width + x;
-			m_data[i] = rand() % 255;
+	if (m_data) {
+		for (int y = 0; y < m_height; y++) {
+			for (int x = 0; x < m_width; x++) {
+				int i = y * m_width + x;
+				m_data[i] = rand() % 255;
+			}
 		}
 	}
 }
 
 uint64_t Picture::signature()
 {
-	if (m_data == nullptr)
-		return 0;
-
 	uint64_t result = 0;
-	for (int y = 1; y < m_height; y++) {
-		int i = y * m_width + m_thread_id;
-		result += m_data[i];
+	if (m_data) {
+		for (int y = 1; y < m_height; y++) {
+			int i = y * m_width + m_thread_id;
+			result += m_data[i];
+		}
 	}
 	return result;
 }
