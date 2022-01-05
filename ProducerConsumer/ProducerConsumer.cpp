@@ -17,8 +17,8 @@ void mimo_maker(CircularQueue<Picture>* q, int id)
         //    height = 1080;
         //}
 
-        picture.set_pts(i);
-        picture.set_thread_id(id);
+        picture.setPts(i);
+        picture.setThreadID(id);
         picture.fill();
         std::cout << "maker " << picture.toString() << std::endl;
         try {
@@ -36,7 +36,6 @@ void mimo_taker(CircularQueue<Picture>* q, int id)
     while (q->isOpen()) {
         try {
             q->pop(picture);
-            //Picture picture = q->pop(); // make new picture alternate call is slower
             std::cout << "taker " << picture.toString() << std::endl;
         }
         catch (const QueueClosedException& e) {
@@ -48,8 +47,6 @@ void mimo_taker(CircularQueue<Picture>* q, int id)
 
 void mimo_test()
 {
-    time_t start_time = time(NULL);
-    srand(start_time);
     CircularQueue<Picture> q(10);
 
     int number_of_producers = 4;
@@ -85,8 +82,8 @@ void siso_maker(CircularQueue<Picture>* q, int id)
     Picture picture(width, height);
 
     for (int i = 0; i < 20; i++) {
-        picture.set_pts(i);
-        picture.set_thread_id(id);
+        picture.setPts(i);
+        picture.setThreadID(id);
         picture.fill();
         std::cout << "maker " << picture.toString() << std::endl;
         try {
@@ -128,13 +125,8 @@ void siso_taker(CircularQueue<Picture>* q, int id)
 
 void siso_test()
 {
-    time_t start_time = time(NULL);
-    srand(start_time);
-    CircularQueue<Picture> q(10);
     PictureQueueMonitor monitor;
-    q.setName("Picture Queue");
-    q.mntrAction = monitor.q_action;
-    q.mntrLock = monitor.q_lock;
+    CircularQueue<Picture> q(10, "Picture Queue", monitor.mntrAction, monitor.mntrWait);
 
     std::thread producer(siso_maker, &q, 1);
     std::thread consumer(siso_taker, &q, 1);
@@ -143,10 +135,58 @@ void siso_test()
     consumer.join();
 
     std::cout << "end" << std::endl;
+}
 
+Picture getFullPicture(int width, int height)
+{
+    Picture p(width, height, true);
+    p.setPts(1);
+    p.setThreadID(1);
+    return p;
+}
+
+void semantics()
+{
+    Picture p1;
+    Picture p2(1920, 1080);
+    p2.setPts(6);
+    p2.setThreadID(6);
+    p2.fill();
+    std::cout << "p2: " << p2.toString() << std::endl;
+    Picture p3(p2);
+    p1 = p3;
+    std::cout << "p1: " << p1.toString() << std::endl;
+    
+    std::vector<Picture> pictures;
+    pictures.reserve(10);
+    for (int i = 0; i < 10; i++)
+        pictures.push_back(Picture(1920, 1080, true));
+
+    std::cout <<"p-: " << pictures[0].toString() << std::endl;
+
+    Picture p5 = getFullPicture(1920, 1080);
+    std::cout << "p51: " << p5.toString() << std::endl;
+
+    p5 = pictures[0];
+    std::cout <<"p52: " << p5.toString() << std::endl;
+
+    Picture p6(1920, 1080);
+    p6 = std::move(p5);
+    std::cout << "p6: " << p6.toString() << std::endl;
+
+    pictures.insert(pictures.begin() + 5, p2);
+
+    for (Picture picture : pictures)
+        std::cout << picture.toString() << std::endl;
+
+    for (int i = 0; i < pictures.size(); i++)
+        std::cout << pictures[i].toString() << std::endl;
 }
 
 int main(int argc, char* argv[])
 {
+    time_t start_time = time(NULL);
+    srand(start_time);
+
     siso_test();
 }
