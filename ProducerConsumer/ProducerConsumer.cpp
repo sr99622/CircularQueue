@@ -81,11 +81,10 @@ void siso_maker(CircularQueue<Picture>* q, int id)
     int height = 2160;
     Picture picture(width, height);
 
-    for (int i = 0; i < 20; i++) {
+    for (int i = 0; i < 15; i++) {
         picture.setPts(i);
         picture.setThreadID(id);
         picture.fill();
-        std::cout << "maker " << picture.toString() << std::endl;
         try {
             q->push(picture);
         }
@@ -93,7 +92,7 @@ void siso_maker(CircularQueue<Picture>* q, int id)
             std::cout << "maker " << e.what() << std::endl;
         }
     }
-    picture.inValidate();
+    picture.invalidate();
     q->push(picture);
     std::cout << "siso maker finished" << std::endl;
 }
@@ -107,6 +106,14 @@ void siso_taker(CircularQueue<Picture>* q, int id)
             q->pop(picture);
             if (picture.isValid()) {
                 std::cout << "taker " << picture.toString() << std::endl;
+                //std::this_thread::sleep_for(std::chrono::milliseconds(150));
+                if (picture.pts() == 7) {
+                    std::cout << "---------------IN------------------------" << std::endl;
+                    q->pause(true);
+                    std::this_thread::sleep_for(std::chrono::milliseconds(5000));
+                    q->pause(false);
+                    std::cout << "---------------OUT------------------------" << std::endl;
+                }
             } 
             else {
                 std::cout << "received eof signal" << std::endl;

@@ -5,23 +5,30 @@ Picture::Picture()
 	std::cout << "default constructor" << std::endl;
 }
 
-Picture::Picture(std::size_t width, std::size_t height, bool populated) : m_width(width), m_height(height),
-m_data((width* height) ? new uint8_t[width * height] : nullptr)
+Picture::Picture(std::size_t width, std::size_t height, bool populate) : m_width(width), m_height(height)
 {
-	if (populated) fill();
+	if (width > 0 && height > 0) {
+		m_data = new uint8_t[width * height];
+		if (populate) fill();
+	}
 	std::cout << "picture created" << std::endl;
 }
 
-Picture::Picture(const Picture& other) : m_width(other.m_width), m_height(other.m_height),
-m_data((other.m_width* other.m_height) ? new uint8_t[other.m_width * other.m_height] : inValidate())
+Picture::Picture(const Picture& other) :
+	m_width(other.m_width), 
+	m_height(other.m_height),
+	m_data(other.isValid() ? new uint8_t[other.m_width * other.m_height] : nullptr)
 {
-	m_pts = other.m_pts;
-	m_thread_id = other.m_thread_id;
-	std::copy(other.m_data, other.m_data + (m_width * m_height), m_data);
-	std::cout << "copy constructor" << std::endl;
+	std::cout << "copy constructor start" << std::endl;
+	if (other.isValid()) {
+		m_pts = other.m_pts;
+		m_thread_id = other.m_thread_id;
+		std::copy(other.m_data, other.m_data + (m_width * m_height), m_data);
+	}
+	std::cout << "copy constructor end" << std::endl;
 }
 
-Picture::Picture(Picture&& other) noexcept : m_width(other.m_width), m_height(other.m_height) 
+Picture::Picture(Picture&& other) noexcept : m_width(other.m_width), m_height(other.m_height)
 {
 	swap(*this, other);
 	std::cout << "move copy constructor" << std::endl;
@@ -36,16 +43,21 @@ Picture::~Picture()
 Picture& Picture::operator=(const Picture& other)
 {
 	std::cout << "assignment" << std::endl;
-	if (m_width == other.m_width && m_height == other.m_height) {
-		std::copy(other.m_data, other.m_data + (m_width * m_height), m_data);
-		m_pts = other.m_pts;
-		m_thread_id = other.m_thread_id;
-		std::cout << "existing assignment" << std::endl;
+	if (other.isValid()) {
+		if (m_width == other.m_width && m_height == other.m_height) {
+			std::copy(other.m_data, other.m_data + (m_width * m_height), m_data);
+			m_pts = other.m_pts;
+			m_thread_id = other.m_thread_id;
+			std::cout << "existing assignment" << std::endl;
+		}
+		else {
+			Picture tmp(other);
+			swap(*this, tmp);
+			std::cout << "created new object for assignment" << std::endl;
+		}
 	}
 	else {
-		Picture tmp(other);
-		swap(*this, tmp);
-		std::cout << "created new object for assignment" << std::endl;
+		invalidate();
 	}
 
 	return *this;
@@ -54,14 +66,19 @@ Picture& Picture::operator=(const Picture& other)
 Picture& Picture::operator=(Picture&& other) noexcept
 {
 	std::cout << "move assignment" << std::endl;
-	if (m_width == other.m_width && m_height == other.m_height) {
-		swap(*this, other);
-		std::cout << "existing move assignment" << std::endl;
+	if (other.isValid()) {
+		if (m_width == other.m_width && m_height == other.m_height) {
+			swap(*this, other);
+			std::cout << "existing move assignment" << std::endl;
+		}
+		else {
+			Picture tmp(other);
+			swap(*this, tmp);
+			std::cout << "created new object for move assignment" << std::endl;
+		}
 	}
 	else {
-		Picture tmp(other);
-		swap(*this, tmp);
-		std::cout << "created new object for move assignment" << std::endl;
+		invalidate();
 	}
 
 	return *this;
@@ -89,15 +106,15 @@ void Picture::fill()
 	}
 }
 
-uint8_t* Picture::inValidate() {
+void Picture::invalidate() {
 	if (m_data) {
 		delete[] m_data;
 		m_data = nullptr;
 	}
-	m_width = m_height = 0;
+	m_width = 0;
+	m_height = 0;
 	m_pts = INVALID_PTS;
 	m_thread_id = -1;
-	return nullptr;
 }
 
 uint64_t Picture::signature() const
@@ -121,17 +138,15 @@ std::string Picture::toString() const
 	return str.str();
 }
 
-int PictureQueueMonitor::mntrAction(Picture& p, int size, bool push, std::string& name) {
+void PictureQueueMonitor::mntrAction(Picture& p, int size, bool push, std::string& name) {
 	std::stringstream str;
 	str << "element: " << ((p.pts() != INVALID_PTS) ? std::to_string(p.pts()) : " INVALID_PTS ") << " name: " << name;
 	str << (push ? " push " : " pop ") << " size: " << size;
 	if (!p.isValid())
 		str << " EOF CONDITION " << (push ? "ENTER" : "LEAVE") << " QUEUE";
 	std::cout << str.str() << std::endl;
-	return 0;
 }
 
-int PictureQueueMonitor::mntrWait(bool locked, bool push, std::string& name) {
+void PictureQueueMonitor::mntrWait(bool locked, bool push, std::string& name) {
 	std::cout << (push ? " push " : " pop ") << (locked ? " LOCKED " : " UN_LOCKED ") << std::endl;
-	return 0;
 }

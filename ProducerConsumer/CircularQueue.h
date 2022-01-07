@@ -23,8 +23,8 @@ public:
 	CircularQueue(
 		size_t max_size, 
 		const std::string& name,
-		std::function<int(T&, int, bool, std::string&)> mntrAction, 
-		std::function<int(bool, bool, std::string&)> mntrWait);
+		std::function<void(T&, int, bool, std::string&)> mntrAction, 
+		std::function<void(bool, bool, std::string&)> mntrWait);
 
 	void push(T const&);
 	T pop();
@@ -34,6 +34,8 @@ public:
 	void open();
 	bool isOpen();
 	void flush();
+	bool isPaused();
+	void pause(bool);
 
 private:
 	std::vector<T> m_data;
@@ -41,13 +43,14 @@ private:
 	int m_front = -1;
 	int m_rear = -1;
 	std::mutex n_mutex;
-	std::condition_variable m_cond_push, m_cond_pop;
+	std::condition_variable m_cond_push, m_cond_pop, m_cond_brake;
 	bool m_closed = false;
 	bool m_active = true;
+	bool m_paused = false;
 	int m_size = 0;
 	std::string m_name;
-	std::function<int(T&, int, bool, std::string&)> mntrAction = nullptr;
-	std::function<int(bool, bool, std::string&)> mntrWait = nullptr;
+	std::function<void(T&, int, bool, std::string&)> mntrAction = nullptr;
+	std::function<void(bool, bool, std::string&)> mntrWait = nullptr;
 
 };
 
@@ -61,8 +64,8 @@ template <typename T>
 CircularQueue<T>::CircularQueue(
 	size_t max_size, 
 	const std::string& name,
-	std::function<int(T&, int, bool, std::string&)> mntrAction,
-	std::function<int(bool, bool, std::string&)> mntrWait) : 
+	std::function<void(T&, int, bool, std::string&)> mntrAction,
+	std::function<void(bool, bool, std::string&)> mntrWait) : 
 	m_max_size(max_size),
 	m_name(name), 
 	mntrAction(mntrAction), 
@@ -76,6 +79,7 @@ template <typename T>
 void CircularQueue<T>::push(T const& element)
 {
 	std::unique_lock<std::mutex> lock(n_mutex);
+	if (m_paused) m_cond_brake.wait(lock);
 
 	while (m_size == m_max_size) {
 		// queue full
@@ -105,6 +109,7 @@ template <typename T>
 T CircularQueue<T>::pop()
 {
 	std::unique_lock<std::mutex> lock(n_mutex);
+	if (m_paused) m_cond_brake.wait(lock);
 
 	while (m_front == -1) {
 		// queue empty
@@ -137,6 +142,7 @@ template <typename T>
 void CircularQueue<T>::pop(T& arg)
 {
 	std::unique_lock<std::mutex> lock(n_mutex);
+	if (m_paused) m_cond_brake.wait(lock);
 
 	while (m_front == -1) {
 		// queue empty
@@ -200,6 +206,24 @@ void CircularQueue<T>::flush()
 	m_active = false;
 	m_cond_pop.notify_all();
 }
+
+
+template <typename T>
+bool CircularQueue<T>::isPaused()
+{
+	std::lock_guard<std::mutex> lock(n_mutex);
+	return m_paused;
+}
+
+template <typename T>
+void CircularQueue<T>::pause(bool arg)
+{
+	std::lock_guard<std::mutex> lock(n_mutex);
+	m_paused = arg;
+	m_cond_brake.notify_all();
+}
+
+
 
 
 /*

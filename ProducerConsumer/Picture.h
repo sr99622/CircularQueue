@@ -13,7 +13,7 @@ class Picture
 {
 public:
 	Picture();
-	Picture(std::size_t width, std::size_t height, bool populated = false);
+	Picture(std::size_t width, std::size_t height, bool populate = false);
 	Picture(const Picture& other);
 	Picture(Picture&& other) noexcept;
 	~Picture();
@@ -23,9 +23,9 @@ public:
 	void fill();
 	uint64_t signature() const;
 	std::string toString() const;
-	uint8_t* inValidate();
+	void invalidate();
 
-	bool isValid()             { return m_width + m_height ? true : false; }
+	bool isValid() const       { return m_width + m_height ? true : false; }
 	uint64_t pts()             { return m_pts; }
 	void setPts(uint64_t arg)  { m_pts = arg; }
 	int threadID()             { return m_thread_id; }
@@ -44,8 +44,8 @@ private:
 class PictureQueueMonitor {
 public:
 	PictureQueueMonitor() {}
-	static int mntrAction(Picture& p, int size, bool push, std::string& name);
-	static int mntrWait(bool locked, bool push, std::string& name);
+	static void mntrAction(Picture& p, int size, bool push, std::string& name);
+	static void mntrWait(bool locked, bool push, std::string& name);
 };
 
 
